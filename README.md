@@ -154,6 +154,7 @@ Devicon brand marks, and the file-manager link.
 | Assistant markdown     | Off hands replies back to Paseo's own markdown renderer.           |
 | Expand running cards   | Off keeps tool and reasoning cards collapsed until you open them.  |
 | Use Paseo fonts        | Uses Paseo's interface and code fonts in place of Inter and Iosevka. |
+| Line spacing           | Compact (original), Balanced (+15%), or Spacious (+30%) line height. |
 
 ---
 

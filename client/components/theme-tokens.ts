@@ -28,6 +28,9 @@ export const fontMono = "OMP Iosevka";
 export const fontCode = "OMP Iosevka Code";
 export const fontUi = "OMP Inter";
 
+/** Line height multipliers. Compact is the spacing the cards were drawn with. */
+const LINE_SPACING = { compact: 1, balanced: 1.15, spacious: 1.3 } as const;
+
 /**
  * Paseo's own interface and code font settings. The plugin SDK carries no
  * fonts, so this reads the host's settings record, which web and desktop keep
@@ -54,6 +57,8 @@ function firstFamily(value: unknown): string | undefined {
 
 export interface ExtendedThemeTokens {
   isDark: boolean;
+  /** Multiplier for every text line height, from the line spacing preference. */
+  leading: number;
   fontMono: string;
   fontCode: string;
   fontUi: string;
@@ -202,6 +207,7 @@ export function buildThemeTokens(
 
   return {
     isDark,
+    leading: LINE_SPACING[preferences.lineSpacing],
     fontMono: host.mono ?? fontMono,
     fontCode: host.mono ?? (preferences.codeFont === "plain" ? fontMono : fontCode),
     fontUi: host.ui ?? (preferences.uiFont === "system" ? "System" : fontUi),

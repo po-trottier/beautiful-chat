@@ -10,6 +10,7 @@ import {
   useEnhancerPreferences,
   type AccentPreset,
   type CodeFontPreference,
+  type LineSpacingPreference,
   type UiFontPreference,
 } from "./preferences";
 
@@ -318,6 +319,19 @@ export function BeautifulChatSettingsPage({ theme }: PluginSurfaceProps) {
             { value: "plain", label: "Literal" },
           ]}
           onChange={(codeFont) => updateEnhancerPreferences({ codeFont })}
+          tokens={tokens}
+        />
+
+        <ChoiceRow<LineSpacingPreference>
+          title="Line spacing"
+          description="Sets the space between lines in replies, prompts, and cards. Compact is the original spacing. Balanced adds 15% and Spacious adds 30%. New cards follow the change."
+          value={preferences.lineSpacing}
+          options={[
+            { value: "compact", label: "Compact" },
+            { value: "balanced", label: "Balanced" },
+            { value: "spacious", label: "Spacious" },
+          ]}
+          onChange={(lineSpacing) => updateEnhancerPreferences({ lineSpacing })}
           tokens={tokens}
         />
 

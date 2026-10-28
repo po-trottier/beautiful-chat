@@ -231,7 +231,7 @@ export function TaskList({ data, tokens, onToggleTask }: TaskListProps) {
         taskTitle: {
           fontFamily: tokens.fontUi,
           fontSize: 13,
-          lineHeight: 18,
+          lineHeight: 18 * tokens.leading,
           color: tokens.foreground,
         },
         taskTitleCompleted: {
@@ -271,7 +271,7 @@ export function TaskList({ data, tokens, onToggleTask }: TaskListProps) {
           fontFamily: tokens.fontUi,
           fontSize: 12,
           color: tokens.warning,
-          lineHeight: 16,
+          lineHeight: 16 * tokens.leading,
         },
       }),
     [tokens],
