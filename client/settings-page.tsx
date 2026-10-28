@@ -289,6 +289,14 @@ export function BeautifulChatSettingsPage({ theme }: PluginSurfaceProps) {
           </View>
         </View>
 
+        <ToggleRow
+          title="Use Paseo fonts"
+          description="Use the interface and code fonts from Paseo's appearance settings in place of Inter and Iosevka. An empty Paseo font keeps the embedded face. Desktop and web only. New cards follow the change."
+          value={preferences.hostFonts}
+          onChange={(hostFonts) => updateEnhancerPreferences({ hostFonts })}
+          tokens={tokens}
+        />
+
         <ChoiceRow<UiFontPreference>
           title="Interface font"
           description="Choose the embedded Inter face or the system interface face."

@@ -153,6 +153,7 @@ Devicon brand marks, and the file-manager link.
 | Enhanced prompt bubble | Off hands prompts back to Paseo, whose bubble shows pasted images. |
 | Assistant markdown     | Off hands replies back to Paseo's own markdown renderer.           |
 | Expand running cards   | Off keeps tool and reasoning cards collapsed until you open them.  |
+| Use Paseo fonts        | Uses Paseo's interface and code fonts in place of Inter and Iosevka. |
 
 ---
 

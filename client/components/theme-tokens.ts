@@ -28,6 +28,30 @@ export const fontMono = "OMP Iosevka";
 export const fontCode = "OMP Iosevka Code";
 export const fontUi = "OMP Inter";
 
+/**
+ * Paseo's own interface and code font settings. The plugin SDK carries no
+ * fonts, so this reads the host's settings record, which web and desktop keep
+ * in `localStorage`. An empty or missing value leaves the embedded face in
+ * place. Only the first family of a list is kept, for the reason given above.
+ */
+function readHostFonts(): { ui?: string; mono?: string } {
+  try {
+    const store = (globalThis as typeof globalThis & { localStorage?: Storage }).localStorage;
+    const raw = store?.getItem("@paseo:app-settings");
+    if (!raw) return {};
+    const settings = JSON.parse(raw) as { uiFontFamily?: unknown; monoFontFamily?: unknown };
+    return { ui: firstFamily(settings.uiFontFamily), mono: firstFamily(settings.monoFontFamily) };
+  } catch {
+    return {};
+  }
+}
+
+function firstFamily(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const family = (value.split(",")[0] ?? "").trim().replace(/^["']|["']$/g, "");
+  return family || undefined;
+}
+
 export interface ExtendedThemeTokens {
   isDark: boolean;
   fontMono: string;
@@ -174,12 +198,13 @@ export function buildThemeTokens(
   const danger = colors.statusDanger;
   const tint = isDark ? 0.1 : 0.08;
   const edge = isDark ? 0.22 : 0.18;
+  const host = preferences.hostFonts ? readHostFonts() : {};
 
   return {
     isDark,
-    fontMono,
-    fontCode: preferences.codeFont === "plain" ? fontMono : fontCode,
-    fontUi: preferences.uiFont === "system" ? "System" : fontUi,
+    fontMono: host.mono ?? fontMono,
+    fontCode: host.mono ?? (preferences.codeFont === "plain" ? fontMono : fontCode),
+    fontUi: host.ui ?? (preferences.uiFont === "system" ? "System" : fontUi),
 
     surface0: colors.surface0,
     surface1: withAlpha(fg, isDark ? 0.03 : 0.025),

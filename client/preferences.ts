@@ -19,6 +19,11 @@ export interface EnhancerPreferences {
   codeFont: CodeFontPreference;
   frostedGlass: boolean;
   /**
+   * Uses the interface and code fonts set in Paseo's appearance settings in
+   * place of the embedded Inter and Iosevka. Web and desktop only.
+   */
+  hostFonts: boolean;
+  /**
    * A light that follows the pointer across a card. Web and desktop only:
    * touch platforms have no hover, so the attribute is inert there.
    */
@@ -61,6 +66,7 @@ export const DEFAULT_PREFERENCES: Readonly<EnhancerPreferences> = {
   uiFont: "inter",
   codeFont: "code",
   frostedGlass: true,
+  hostFonts: false,
   pointerGlow: true,
   enhancedUserBubble: true,
   selectionActions: true,
@@ -89,6 +95,8 @@ function loadPreferences(): EnhancerPreferences {
       accent: isAccentPreset(candidate.accent) ? candidate.accent : DEFAULT_PREFERENCES.accent,
       uiFont: candidate.uiFont === "system" ? "system" : DEFAULT_PREFERENCES.uiFont,
       codeFont: candidate.codeFont === "plain" ? "plain" : DEFAULT_PREFERENCES.codeFont,
+      hostFonts:
+        typeof candidate.hostFonts === "boolean" ? candidate.hostFonts : DEFAULT_PREFERENCES.hostFonts,
       frostedGlass:
         typeof candidate.frostedGlass === "boolean"
           ? candidate.frostedGlass

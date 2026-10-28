@@ -356,7 +356,7 @@ export function TaskList({ data, tokens, onToggleTask }: TaskListProps) {
                   ) : isBlocked ? (
                     <Glyph name="AlertCircle" size={13} color={tokens.warning} />
                   ) : (
-                    <Glow active={isActive} color={tokens.accent} size={22}>
+                    <Glow active={isActive} color={tokens.accent} size={16}>
                       <Glyph
                         name="Circle"
                         size={13}
