@@ -27,6 +27,11 @@ export interface EnhancerPreferences {
   /** Scales the line height of all card and reply text. */
   lineSpacing: LineSpacingPreference;
   /**
+   * Keeps reasoning rows when Paseo's Tool call display is Summary. Paseo
+   * folds only consecutive tool calls, so each thought then splits the summary.
+   */
+  overviewReasoning: boolean;
+  /**
    * A light that follows the pointer across a card. Web and desktop only:
    * touch platforms have no hover, so the attribute is inert there.
    */
@@ -71,6 +76,7 @@ export const DEFAULT_PREFERENCES: Readonly<EnhancerPreferences> = {
   frostedGlass: true,
   hostFonts: false,
   lineSpacing: "compact",
+  overviewReasoning: false,
   pointerGlow: true,
   enhancedUserBubble: true,
   selectionActions: true,
@@ -105,6 +111,10 @@ function loadPreferences(): EnhancerPreferences {
         candidate.lineSpacing === "balanced" || candidate.lineSpacing === "spacious"
           ? candidate.lineSpacing
           : DEFAULT_PREFERENCES.lineSpacing,
+      overviewReasoning:
+        typeof candidate.overviewReasoning === "boolean"
+          ? candidate.overviewReasoning
+          : DEFAULT_PREFERENCES.overviewReasoning,
       frostedGlass:
         typeof candidate.frostedGlass === "boolean"
           ? candidate.frostedGlass

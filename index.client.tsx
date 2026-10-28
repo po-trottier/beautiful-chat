@@ -9,6 +9,7 @@ import { installHostNoticeStyle } from "./client/components/host-notice";
 import { installChatFind } from "./client/components/chat-find";
 import { extractPromptImages } from "./client/prompt-images";
 import { getEnhancerPreferences } from "./client/preferences";
+import { hostToolOverview } from "./client/host-settings";
 import {
   LiveToolCallRenderer,
   LiveReasoningRenderer,
@@ -50,6 +51,9 @@ export default function contribute(client: PluginClientContext) {
     query: { itemType: "tool_call" },
     transform({ item, phase }) {
       if (item.type !== "tool_call") return undefined;
+      // Paseo's Summary tool call display folds runs of its own tool rows into one row.
+      // A plugin row breaks the run, so the call goes back to the host.
+      if (hostToolOverview()) return undefined;
       return {
         items: [
           {
@@ -89,6 +93,9 @@ export default function contribute(client: PluginClientContext) {
     query: { itemType: "reasoning" },
     transform({ item, phase }) {
       if (item.type !== "reasoning") return undefined;
+      // A thought between two calls also breaks Paseo's Summary run. Hiding
+      // it lets the whole run fold into one row, unless the user keeps it.
+      if (hostToolOverview() && !getEnhancerPreferences().overviewReasoning) return { items: [] };
       return {
         items: [
           {

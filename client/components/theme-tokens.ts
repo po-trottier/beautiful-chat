@@ -1,5 +1,6 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { DEFAULT_PREFERENCES, type EnhancerPreferences, ACCENT_PRESETS } from "../preferences";
+import { readHostAppSettings } from "../host-settings";
 
 export type PluginSurfaceColors = PluginTheme["colors"];
 
@@ -32,21 +33,13 @@ export const fontUi = "OMP Inter";
 const LINE_SPACING = { compact: 1, balanced: 1.15, spacious: 1.3 } as const;
 
 /**
- * Paseo's own interface and code font settings. The plugin SDK carries no
- * fonts, so this reads the host's settings record, which web and desktop keep
- * in `localStorage`. An empty or missing value leaves the embedded face in
- * place. Only the first family of a list is kept, for the reason given above.
+ * Paseo's own interface and code fonts. An empty or missing value leaves the
+ * embedded face in place. Only the first family of a list is kept, for the
+ * reason given above.
  */
 function readHostFonts(): { ui?: string; mono?: string } {
-  try {
-    const store = (globalThis as typeof globalThis & { localStorage?: Storage }).localStorage;
-    const raw = store?.getItem("@paseo:app-settings");
-    if (!raw) return {};
-    const settings = JSON.parse(raw) as { uiFontFamily?: unknown; monoFontFamily?: unknown };
-    return { ui: firstFamily(settings.uiFontFamily), mono: firstFamily(settings.monoFontFamily) };
-  } catch {
-    return {};
-  }
+  const settings = readHostAppSettings();
+  return { ui: firstFamily(settings.uiFontFamily), mono: firstFamily(settings.monoFontFamily) };
 }
 
 function firstFamily(value: unknown): string | undefined {

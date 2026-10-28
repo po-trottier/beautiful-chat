@@ -155,6 +155,7 @@ Devicon brand marks, and the file-manager link.
 | Expand running cards   | Off keeps tool and reasoning cards collapsed until you open them.  |
 | Use Paseo fonts        | Uses Paseo's interface and code fonts in place of Inter and Iosevka. |
 | Line spacing           | Compact (original), Balanced (+15%), or Spacious (+30%) line height. |
+| Show reasoning in Summary mode | Off hides reasoning when Paseo's Tool call display is Summary, so each run of tool calls folds into one Paseo summary row. |
 
 ---
 

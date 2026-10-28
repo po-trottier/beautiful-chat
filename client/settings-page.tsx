@@ -383,6 +383,14 @@ export function BeautifulChatSettingsPage({ theme }: PluginSurfaceProps) {
           tokens={tokens}
         />
 
+        <ToggleRow
+          title="Show reasoning in Summary mode"
+          description="When Paseo's Tool call display is Summary, the plugin hands tool calls back to Paseo, which folds each run of calls into one summary row. Paseo folds only calls that touch, so this setting hides reasoning between them by default. Turn this on to keep reasoning: the summary then splits at each thought. New items follow the change."
+          value={preferences.overviewReasoning}
+          onChange={(overviewReasoning) => updateEnhancerPreferences({ overviewReasoning })}
+          tokens={tokens}
+        />
+
         <ChoiceRow
           title="Markdown style"
           description="Document is airy and built for long answers. Compact tightens the spacing for short replies. Terminal sets the body in the code face."
