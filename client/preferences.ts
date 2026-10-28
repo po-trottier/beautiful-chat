@@ -43,6 +43,13 @@ export interface EnhancerPreferences {
    * subset rather than a superset.
    */
   assistantMarkdown: boolean;
+  /**
+   * Opens a tool or reasoning card that arrives while it runs, streams, or
+   * fails. The open state is set when the card mounts, so a card opened this
+   * way stays open after it finishes. Off keeps every card collapsed until
+   * the user opens it.
+   */
+  expandRunningCards: boolean;
   /** Which look the markdown renderer uses. */
   markdownVariant: MarkdownVariantPreference;
 }
@@ -58,6 +65,7 @@ export const DEFAULT_PREFERENCES: Readonly<EnhancerPreferences> = {
   enhancedUserBubble: true,
   selectionActions: true,
   assistantMarkdown: true,
+  expandRunningCards: true,
   markdownVariant: "document",
 };
 
@@ -101,6 +109,10 @@ function loadPreferences(): EnhancerPreferences {
         typeof candidate.assistantMarkdown === "boolean"
           ? candidate.assistantMarkdown
           : DEFAULT_PREFERENCES.assistantMarkdown,
+      expandRunningCards:
+        typeof candidate.expandRunningCards === "boolean"
+          ? candidate.expandRunningCards
+          : DEFAULT_PREFERENCES.expandRunningCards,
       markdownVariant:
         candidate.markdownVariant === "compact" || candidate.markdownVariant === "terminal"
           ? candidate.markdownVariant

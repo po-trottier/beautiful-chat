@@ -152,6 +152,7 @@ Devicon brand marks, and the file-manager link.
 | Frosted glass          | Blur card surfaces, or paint them solid.                           |
 | Enhanced prompt bubble | Off hands prompts back to Paseo, whose bubble shows pasted images. |
 | Assistant markdown     | Off hands replies back to Paseo's own markdown renderer.           |
+| Expand running cards   | Off keeps tool and reasoning cards collapsed until you open them.  |
 
 ---
 

@@ -353,6 +353,14 @@ export function BeautifulChatSettingsPage({ theme }: PluginSurfaceProps) {
           tokens={tokens}
         />
 
+        <ToggleRow
+          title="Expand running cards"
+          description="Opens tool and reasoning cards while they run, stream, or fail. A card opened this way stays open after it finishes. Turn this off to keep every card collapsed until you open it. New cards follow the change."
+          value={preferences.expandRunningCards}
+          onChange={(expandRunningCards) => updateEnhancerPreferences({ expandRunningCards })}
+          tokens={tokens}
+        />
+
         <ChoiceRow
           title="Markdown style"
           description="Document is airy and built for long answers. Compact tightens the spacing for short replies. Terminal sets the body in the code face."

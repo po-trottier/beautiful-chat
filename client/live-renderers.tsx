@@ -596,8 +596,10 @@ export function LiveToolCallRenderer({
     });
   }, [hubData, agentId]);
 
-  // Collapse completed tools by default; expand active or failed tools
-  const isExpanded = data.status === "running" || data.status === "failed";
+  // Expand active or failed tools when the preference allows it. The callout
+  // reads this once at mount, so a card that mounts while running stays open.
+  const isExpanded =
+    preferences.expandRunningCards && (data.status === "running" || data.status === "failed");
 
   // The daemon side owns the shell, so revealing a file is one RPC. A path the
   // daemon cannot stat answers with an error the press simply ignores.
@@ -698,7 +700,7 @@ export function LiveReasoningRenderer({
       <ReasoningTrace
         data={reasoningData}
         tokens={tokens}
-        defaultExpanded={data.phase === "streaming"}
+        defaultExpanded={preferences.expandRunningCards && data.phase === "streaming"}
       />
     </View>
   );
