@@ -113,7 +113,9 @@ A collapsible trace with a connected step rail, per-step duration, and a token t
 
 ### Checklist
 
-Phase name, per-task status, durations, and a blocked task with its reason.
+Phase name, per-task status, durations, and a blocked task with its reason. Each agent shows one
+checklist card, under the newest prompt, reply, or tool card, like the OMP TUI. Each todo update
+changes that card and does not add a new one. A finished list stays until the next prompt.
 
 ![Checklist](docs/images/tasks.png)
 

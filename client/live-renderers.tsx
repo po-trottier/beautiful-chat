@@ -7,7 +7,6 @@ import type { PluginTheme } from "@getpaseo/plugin";
 import { buildThemeTokens } from "./components/theme-tokens";
 import { ToolCallout } from "./components/tool-callouts";
 import { ReasoningTrace } from "./components/reasoning-trace";
-import { TaskList } from "./components/task-list";
 import { UserMessage } from "./components/user-message";
 import { hostFontEscape } from "./components/host-font-escape";
 import { promptRowAnchor } from "./components/prompt-anchor";
@@ -21,6 +20,7 @@ import { buildHubData } from "./hub-details";
 import { publishHubSnapshot } from "./hub-activity";
 import { MarkdownView } from "./components/markdown/markdown-view";
 import { TimelineTailHub } from "./components/hub-live";
+import { TimelineTailChecklist } from "./components/checklist-live";
 import { AssistantFooter } from "./components/turn-footer";
 import { SystemCard } from "./components/system-card";
 import { parseSystemEnvelope } from "./system-envelope";
@@ -29,8 +29,6 @@ import type {
   ToolCalloutData,
   ToolCallKind,
   ReasoningTraceData,
-  TaskListData,
-  TaskItemData,
   EvalCell,
   HubData,
   McpToolData,
@@ -59,11 +57,6 @@ export interface LiveToolCallPayload {
 
 export interface LiveReasoningPayload {
   text: string;
-  phase?: string;
-}
-
-export interface LiveTodoPayload {
-  items: Array<Record<string, unknown>>;
   phase?: string;
 }
 
@@ -626,6 +619,12 @@ export function LiveToolCallRenderer({
         onRevealPath={handleRevealPath}
         imageFile={imageFile}
       />
+      <TimelineTailChecklist
+        agentId={agentId}
+        tokens={tokens}
+        itemKey={`tool:${data.callId ?? calloutData.title}:${timestamp.getTime()}`}
+        at={timestamp.getTime()}
+      />
       <TimelineTailHub
         agentId={agentId}
         tokens={tokens}
@@ -706,43 +705,6 @@ export function LiveReasoningRenderer({
   );
 }
 
-export function LiveTodoRenderer({ item, theme }: PluginTimelineItemProps<LiveTodoPayload>) {
-  const preferences = useEnhancerPreferences();
-  const tokens = useMemo(
-    () => buildThemeTokens(theme.colors, preferences),
-    [theme.colors, preferences],
-  );
-  useSelectionActions(tokens, preferences.selectionActions);
-  usePointerGlow(preferences.pointerGlow);
-  const data = item.data;
-
-  const taskListData: TaskListData = useMemo(() => {
-    const tasks: TaskItemData[] = (data.items || []).map((task, idx) => ({
-      id: typeof task.id === "string" ? task.id : `todo-${idx}`,
-      title: typeof task.text === "string" ? task.text : "Untitled task",
-      phase: "Execution",
-      status:
-        task.completed === true
-          ? "completed"
-          : task.status === "in_progress"
-            ? "in_progress"
-            : "pending",
-    }));
-
-    return {
-      id: "live-todo",
-      phaseName: "Checklist Progress",
-      tasks,
-    };
-  }, [data]);
-
-  return (
-    <View {...hostFontEscape}>
-      <TaskList data={taskListData} tokens={tokens} />
-    </View>
-  );
-}
-
 export interface LiveAssistantPayload {
   text: string;
 }
@@ -772,7 +734,7 @@ export function LiveAssistantRenderer({
   // off an `assistant_message` item that no longer exists. Rebuild it where the
   // host puts it: under the newest message, once, not under every reply.
   const itemKey = `assistant:${timestamp.getTime()}`;
-  const isTail = useIsTimelineTail(itemKey);
+  const isTail = useIsTimelineTail(agentId, itemKey);
 
   // Job results, IRC relays and reminders arrive as replies because the host
   // files any unclaimed `custom` message under this item kind. They are not
@@ -789,6 +751,7 @@ export function LiveAssistantRenderer({
       {isTail && !envelope ? (
         <AssistantFooter text={item.data.text} at={timestamp} tokens={tokens} />
       ) : null}
+      <TimelineTailChecklist agentId={agentId} tokens={tokens} itemKey={itemKey} at={timestamp.getTime()} />
       <TimelineTailHub
         agentId={agentId}
         tokens={tokens}
@@ -916,6 +879,19 @@ export function LiveUserMessageRenderer({
           pending={running && !frozen}
         />
       )}
+      <TimelineTailChecklist
+        agentId={agentId}
+        tokens={tokens}
+        itemKey={`prompt:${timestamp.getTime()}`}
+        at={timestamp.getTime()}
+      />
+      <TimelineTailHub
+        agentId={agentId}
+        tokens={tokens}
+        itemKey={`prompt:${timestamp.getTime()}`}
+        at={timestamp.getTime()}
+        kind="tool"
+      />
     </View>
   );
 }

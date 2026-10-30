@@ -13,7 +13,6 @@ import { hostToolOverview } from "./client/host-settings";
 import {
   LiveToolCallRenderer,
   LiveReasoningRenderer,
-  LiveTodoRenderer,
   LiveUserMessageRenderer,
   LiveNoticeRenderer,
   LiveAssistantRenderer,
@@ -122,35 +121,13 @@ export default function contribute(client: PluginClientContext) {
     Component: LiveReasoningRenderer,
   });
 
+  // Every todo update repeats the whole list, so the items are dropped and the
+  // newest list is drawn once under the newest item (`checklist-live.tsx`).
+  // An empty plugin item would still get the host's row gap, so none is kept.
   const removeTodoTransformer = client.addTimelineTransformer({
     id: "omp-enhanced-todo",
     query: { itemType: "todo" },
-    transform({ item, phase }) {
-      if (item.type !== "todo") return undefined;
-      return {
-        items: [
-          {
-            type: "plugin" as const,
-            kind: "omp-todo",
-            version: 1,
-            data: {
-              items: toJsonValue(item.items),
-              phase,
-            },
-          },
-        ],
-      };
-    },
-  });
-
-  const removeTodoRenderer = client.addTimelineRenderer({
-    kind: "omp-todo",
-    version: 1,
-    schema: z.object({
-      items: z.array(z.record(z.string(), z.unknown())),
-      phase: z.string().optional(),
-    }),
-    Component: LiveTodoRenderer,
+    transform: () => ({ items: [] }),
   });
 
   const removeUserTransformer = client.addTimelineTransformer({
@@ -276,7 +253,6 @@ export default function contribute(client: PluginClientContext) {
     removeReasoningTransformer();
     removeReasoningRenderer();
     removeTodoTransformer();
-    removeTodoRenderer();
     removeUserTransformer();
     removeUserRenderer();
     removeAssistantTransformer();
