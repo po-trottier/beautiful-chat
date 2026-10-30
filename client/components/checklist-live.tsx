@@ -73,9 +73,14 @@ const MAX_PAGES = 5;
 async function backfill(paseo: PaseoApi, agentId: string, live: () => boolean): Promise<void> {
   const timeline = paseo.agents.ref(agentId).timeline;
   let page = await timeline.refetch({ direction: "tail", limit: PAGE });
-  for (let pages = 1; live(); pages++) {
-    for (const entry of page.entries) noteItem(agentId, entry.item, entry.timestamp);
-    if (state.get(agentId)?.checklist || !page.hasOlder || !page.startCursor || pages >= MAX_PAGES) return;
+  // Stop on a list this scan found. The cache can hold an older list from
+  // before the feed was released, and stopping on that would keep it.
+  for (let pages = 1, found = false; live(); pages++) {
+    for (const entry of page.entries) {
+      noteItem(agentId, entry.item, entry.timestamp);
+      if (entry.item.type === "todo") found = true;
+    }
+    if (found || !page.hasOlder || !page.startCursor || pages >= MAX_PAGES) return;
     page = await timeline.refetch({ direction: "before", cursor: page.startCursor, limit: PAGE });
   }
 }

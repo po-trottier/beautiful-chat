@@ -230,7 +230,13 @@ function MarkdownImage({ src, tokens }: { src: string; tokens: ExtendedThemeToke
 /** `file:///C:/a%20b.png` → `C:/a b.png`, `file:///tmp/x.png` → `/tmp/x.png`. */
 function fileUrlToPath(src: string): string {
   if (!/^file:/i.test(src)) return src;
-  const path = decodeURIComponent(src.replace(/^file:\/\/(?:localhost)?/i, ""));
+  const raw = src.replace(/^file:\/\/(?:localhost)?/i, "");
+  let path = raw;
+  try {
+    path = decodeURIComponent(raw);
+  } catch {
+    // A bare `%` in the name (`100%.png`) is not an escape. Keep it as written.
+  }
   return /^\/[a-zA-Z]:/.test(path) ? path.slice(1) : path;
 }
 

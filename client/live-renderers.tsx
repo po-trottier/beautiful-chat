@@ -637,8 +637,10 @@ export function LiveToolCallRenderer({
 }
 
 export function LiveReasoningRenderer({
+  agentId,
   item,
   theme,
+  timestamp,
 }: PluginTimelineItemProps<LiveReasoningPayload>) {
   const preferences = useEnhancerPreferences();
   const tokens = useMemo(
@@ -694,6 +696,7 @@ export function LiveReasoningRenderer({
     };
   }, [data, revealed]);
 
+  const itemKey = `reasoning:${timestamp.getTime()}`;
   return (
     <View {...hostFontEscape}>
       <ReasoningTrace
@@ -701,6 +704,8 @@ export function LiveReasoningRenderer({
         tokens={tokens}
         defaultExpanded={preferences.expandRunningCards && data.phase === "streaming"}
       />
+      <TimelineTailChecklist agentId={agentId} tokens={tokens} itemKey={itemKey} at={timestamp.getTime()} />
+      <TimelineTailHub agentId={agentId} tokens={tokens} itemKey={itemKey} at={timestamp.getTime()} kind="tool" />
     </View>
   );
 }
