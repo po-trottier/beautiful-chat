@@ -46,6 +46,10 @@ bytes come from the plugin's own daemon-side RPC (`file.image`), which is the on
 reach the file; PNG, JPEG, GIF, WebP, AVIF, BMP, ICO and SVG are recognised, and anything past
 3 MB reports its size rather than inlining a data URI.
 
+An image the agent puts in its reply (`![alt](file:///…/shot.png)`, as Claude Code does after it
+reads a screenshot) draws through the same card when it stands alone in a paragraph. An image in
+the middle of a sentence stays a link.
+
 ![Image read](docs/images/tool-image.png)
 
 ### Edit

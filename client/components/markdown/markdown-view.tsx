@@ -8,6 +8,8 @@ import { selectionSurface } from "../selection-actions";
 import { SyntaxHighlightBlock } from "../syntax-highlight";
 import { openLink } from "../open-link";
 import { parseMarkdown, type MdAlign, type MdBlock, type MdInline, type MdListItem } from "./parse";
+import { ImagePreview } from "../image-preview";
+import { useImageFile, type ImageFile } from "../../image-file";
 
 /**
  * The assistant's own prose, drawn by the plugin instead of the host. Three
@@ -210,6 +212,28 @@ export function MarkdownView({ text, tokens, variant }: MarkdownViewProps) {
   );
 }
 
+/**
+ * An image the agent put in its reply. A remote or `data:` source loads as is.
+ * A local file goes through the daemon RPC, because the client may be a phone
+ * that cannot reach the agent's disk.
+ */
+function MarkdownImage({ src, tokens }: { src: string; tokens: ExtendedThemeTokens }) {
+  const remote = /^(?:https?:|data:)/i.test(src);
+  const path = remote ? undefined : fileUrlToPath(src);
+  const local = useImageFile(path, null);
+  const file: ImageFile | null = remote
+    ? { dataUri: src, width: null, height: null, bytes: null, error: null }
+    : local;
+  return <ImagePreview path={path ?? src} file={file} tokens={tokens} />;
+}
+
+/** `file:///C:/a%20b.png` → `C:/a b.png`, `file:///tmp/x.png` → `/tmp/x.png`. */
+function fileUrlToPath(src: string): string {
+  if (!/^file:/i.test(src)) return src;
+  const path = decodeURIComponent(src.replace(/^file:\/\/(?:localhost)?/i, ""));
+  return /^\/[a-zA-Z]:/.test(path) ? path.slice(1) : path;
+}
+
 function renderBlock(
   block: MdBlock,
   key: string,
@@ -280,6 +304,13 @@ function renderBlock(
 
     case "rule":
       return <View key={key} style={styles.rule} />;
+
+    case "image":
+      return (
+        <View key={key} style={styles.codeBlock}>
+          <MarkdownImage src={block.src} tokens={tokens} />
+        </View>
+      );
 
     case "table":
       return renderTable(block, key, context);
