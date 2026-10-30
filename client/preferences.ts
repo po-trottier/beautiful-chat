@@ -189,12 +189,16 @@ export function resetEnhancerPreferences(): void {
   publish();
 }
 
+export function subscribeEnhancerPreferences(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
 export function useEnhancerPreferences(): EnhancerPreferences {
   return useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
+    subscribeEnhancerPreferences,
     getEnhancerPreferences,
     getEnhancerPreferences,
   );

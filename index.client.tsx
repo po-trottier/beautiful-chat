@@ -8,7 +8,7 @@ import { installPointerGlow } from "./client/components/glow";
 import { installHostNoticeStyle } from "./client/components/host-notice";
 import { installChatFind } from "./client/components/chat-find";
 import { extractPromptImages } from "./client/prompt-images";
-import { getEnhancerPreferences } from "./client/preferences";
+import { getEnhancerPreferences, subscribeEnhancerPreferences } from "./client/preferences";
 import { hostToolOverview } from "./client/host-settings";
 import {
   LiveToolCallRenderer,
@@ -126,23 +126,36 @@ export default function contribute(client: PluginClientContext) {
   // items are dropped and the newest list is drawn once under the newest item
   // (`checklist-live.tsx`). An empty plugin item would still get the host's
   // row gap, so none is kept. Off draws each update in place.
-  const removeTodoTransformer = client.addTimelineTransformer({
-    id: "omp-enhanced-todo",
-    query: { itemType: "todo" },
-    transform({ item }) {
-      if (item.type !== "todo") return undefined;
-      if (getEnhancerPreferences().liveChecklist) return { items: [] };
-      return {
-        items: [
-          {
-            type: "plugin" as const,
-            kind: "omp-todo",
-            version: 1,
-            data: { items: toJsonValue(item.items) },
-          },
-        ],
-      };
-    },
+  const addTodoTransformer = () =>
+    client.addTimelineTransformer({
+      id: "omp-enhanced-todo",
+      query: { itemType: "todo" },
+      transform({ item }) {
+        if (item.type !== "todo") return undefined;
+        if (getEnhancerPreferences().liveChecklist) return { items: [] };
+        return {
+          items: [
+            {
+              type: "plugin" as const,
+              kind: "omp-todo",
+              version: 1,
+              data: { items: toJsonValue(item.items) },
+            },
+          ],
+        };
+      },
+    });
+  let removeTodoTransformer = addTodoTransformer();
+  // Paseo caches each projected item until its plugin registrations change.
+  // Register again when the setting changes, so that todo rows already on
+  // screen follow it. Without this, both the cached rows and the live card show.
+  let liveChecklist = getEnhancerPreferences().liveChecklist;
+  const stopChecklistWatch = subscribeEnhancerPreferences(() => {
+    const next = getEnhancerPreferences().liveChecklist;
+    if (next === liveChecklist) return;
+    liveChecklist = next;
+    removeTodoTransformer();
+    removeTodoTransformer = addTodoTransformer();
   });
 
   const removeTodoRenderer = client.addTimelineRenderer({
@@ -274,6 +287,7 @@ export default function contribute(client: PluginClientContext) {
     removeToolRenderer();
     removeReasoningTransformer();
     removeReasoningRenderer();
+    stopChecklistWatch();
     removeTodoTransformer();
     removeTodoRenderer();
     removeUserTransformer();
