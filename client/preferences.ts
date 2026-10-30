@@ -63,6 +63,11 @@ export interface EnhancerPreferences {
    * the user opens it.
    */
   expandRunningCards: boolean;
+  /**
+   * Draws the newest todo list once, as a live card under the newest item.
+   * Off draws every todo update where it arrived, as Paseo's own rows do.
+   */
+  liveChecklist: boolean;
   /** Which look the markdown renderer uses. */
   markdownVariant: MarkdownVariantPreference;
 }
@@ -82,6 +87,7 @@ export const DEFAULT_PREFERENCES: Readonly<EnhancerPreferences> = {
   selectionActions: true,
   assistantMarkdown: true,
   expandRunningCards: true,
+  liveChecklist: true,
   markdownVariant: "document",
 };
 
@@ -139,6 +145,10 @@ function loadPreferences(): EnhancerPreferences {
         typeof candidate.expandRunningCards === "boolean"
           ? candidate.expandRunningCards
           : DEFAULT_PREFERENCES.expandRunningCards,
+      liveChecklist:
+        typeof candidate.liveChecklist === "boolean"
+          ? candidate.liveChecklist
+          : DEFAULT_PREFERENCES.liveChecklist,
       markdownVariant:
         candidate.markdownVariant === "compact" || candidate.markdownVariant === "terminal"
           ? candidate.markdownVariant

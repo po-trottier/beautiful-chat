@@ -20,7 +20,8 @@ import { buildHubData } from "./hub-details";
 import { publishHubSnapshot } from "./hub-activity";
 import { MarkdownView } from "./components/markdown/markdown-view";
 import { TimelineTailHub } from "./components/hub-live";
-import { TimelineTailChecklist } from "./components/checklist-live";
+import { TimelineTailChecklist, toTaskListData } from "./components/checklist-live";
+import { TaskList } from "./components/task-list";
 import { AssistantFooter } from "./components/turn-footer";
 import { SystemCard } from "./components/system-card";
 import { parseSystemEnvelope } from "./system-envelope";
@@ -64,6 +65,27 @@ export interface LiveNoticePayload {
   level: string;
   message: string;
   fatal?: boolean;
+}
+
+export interface LiveTodoPayload {
+  items: Array<Record<string, unknown>>;
+}
+
+/** One todo update drawn where it arrived. Used when `liveChecklist` is off. */
+export function LiveTodoRenderer({ item, theme }: PluginTimelineItemProps<LiveTodoPayload>) {
+  const preferences = useEnhancerPreferences();
+  const tokens = useMemo(
+    () => buildThemeTokens(theme.colors, preferences),
+    [theme.colors, preferences],
+  );
+  useSelectionActions(tokens, preferences.selectionActions);
+  usePointerGlow(preferences.pointerGlow);
+  const data = useMemo(() => toTaskListData(item.data.items), [item.data.items]);
+  return (
+    <View {...hostFontEscape}>
+      <TaskList data={data} tokens={tokens} />
+    </View>
+  );
 }
 
 function extractStringProp(obj: unknown, key: string): string | undefined {

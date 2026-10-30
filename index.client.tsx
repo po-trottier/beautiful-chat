@@ -16,6 +16,7 @@ import {
   LiveUserMessageRenderer,
   LiveNoticeRenderer,
   LiveAssistantRenderer,
+  LiveTodoRenderer,
 } from "./client/live-renderers";
 
 type JsonValue = boolean | null | number | string | JsonValue[] | { [key: string]: JsonValue };
@@ -121,13 +122,34 @@ export default function contribute(client: PluginClientContext) {
     Component: LiveReasoningRenderer,
   });
 
-  // Every todo update repeats the whole list, so the items are dropped and the
-  // newest list is drawn once under the newest item (`checklist-live.tsx`).
-  // An empty plugin item would still get the host's row gap, so none is kept.
+  // Every todo update repeats the whole list. With `liveChecklist` on, the
+  // items are dropped and the newest list is drawn once under the newest item
+  // (`checklist-live.tsx`). An empty plugin item would still get the host's
+  // row gap, so none is kept. Off draws each update in place.
   const removeTodoTransformer = client.addTimelineTransformer({
     id: "omp-enhanced-todo",
     query: { itemType: "todo" },
-    transform: () => ({ items: [] }),
+    transform({ item }) {
+      if (item.type !== "todo") return undefined;
+      if (getEnhancerPreferences().liveChecklist) return { items: [] };
+      return {
+        items: [
+          {
+            type: "plugin" as const,
+            kind: "omp-todo",
+            version: 1,
+            data: { items: toJsonValue(item.items) },
+          },
+        ],
+      };
+    },
+  });
+
+  const removeTodoRenderer = client.addTimelineRenderer({
+    kind: "omp-todo",
+    version: 1,
+    schema: z.object({ items: z.array(z.record(z.string(), z.unknown())) }),
+    Component: LiveTodoRenderer,
   });
 
   const removeUserTransformer = client.addTimelineTransformer({
@@ -253,6 +275,7 @@ export default function contribute(client: PluginClientContext) {
     removeReasoningTransformer();
     removeReasoningRenderer();
     removeTodoTransformer();
+    removeTodoRenderer();
     removeUserTransformer();
     removeUserRenderer();
     removeAssistantTransformer();

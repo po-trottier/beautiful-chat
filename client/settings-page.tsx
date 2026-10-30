@@ -1,8 +1,17 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import type { PluginSurfaceProps } from "@getpaseo/plugin/client";
 import { hostFontEscape } from "./components/host-font-escape";
-import { radius, buildThemeTokens, type ExtendedThemeTokens } from "./components/theme-tokens";
+import {
+  radius,
+  fontCode,
+  fontMono,
+  fontUi,
+  buildThemeTokens,
+  type ExtendedThemeTokens,
+} from "./components/theme-tokens";
+import { hostToolOverview } from "./host-settings";
+import { SettingsPreview } from "./settings-preview";
 import {
   ACCENT_PRESETS,
   resetEnhancerPreferences,
@@ -11,30 +20,63 @@ import {
   type AccentPreset,
   type CodeFontPreference,
   type LineSpacingPreference,
+  type MarkdownVariantPreference,
   type UiFontPreference,
 } from "./preferences";
 
-const ACCENT_OPTIONS: ReadonlyArray<{
-  id: AccentPreset;
-  label: string;
-  color: string | undefined;
-}> = [
-  { id: "host", label: "Host theme", color: undefined },
-  { id: "jade", label: "Jade", color: ACCENT_PRESETS.jade },
-  { id: "violet", label: "Violet", color: ACCENT_PRESETS.violet },
-  { id: "amber", label: "Amber", color: ACCENT_PRESETS.amber },
-  { id: "rose", label: "Rose", color: ACCENT_PRESETS.rose },
+const ACCENT_OPTIONS: ReadonlyArray<{ id: AccentPreset; label: string }> = [
+  { id: "host", label: "Paseo theme" },
+  { id: "jade", label: "Jade" },
+  { id: "violet", label: "Violet" },
+  { id: "amber", label: "Amber" },
+  { id: "rose", label: "Rose" },
 ];
-
-const TRACK_WIDTH = 38;
-const TRACK_HEIGHT = 22;
+const LINE_SPACING = { compact: 1, balanced: 1.15, spacious: 1.3 } as const;
+const TWO_COLUMN_WIDTH = 860;
+const PREVIEW_WIDTH = 380;
+const TRACK_WIDTH = 40;
+const TRACK_HEIGHT = 24;
 const KNOB = 16;
 
-/**
- * An on/off control that reads as one. A pair of buttons states the value
- * twice — the label and the selection — and a reader has to compare them to
- * learn which way it is set.
- */
+function Chip({ text, tokens }: { text: string; tokens: ExtendedThemeTokens }) {
+  return (
+    <Text
+      style={[
+        styles.chip,
+        { color: tokens.foregroundMuted, backgroundColor: tokens.surface2, fontFamily: tokens.fontUi },
+      ]}
+    >
+      {text}
+    </Text>
+  );
+}
+
+function SettingText({
+  title,
+  description,
+  chip,
+  tokens,
+}: {
+  title: string;
+  description: string;
+  chip?: string;
+  tokens: ExtendedThemeTokens;
+}) {
+  return (
+    <View style={styles.settingText}>
+      <View style={styles.titleRow}>
+        <Text style={[styles.rowTitle, { color: tokens.foreground, fontFamily: tokens.fontUi }]}>
+          {title}
+        </Text>
+        {chip ? <Chip text={chip} tokens={tokens} /> : null}
+      </View>
+      <Text style={[styles.description, { color: tokens.foregroundMuted, fontFamily: tokens.fontUi }]}>
+        {description}
+      </Text>
+    </View>
+  );
+}
+
 function Toggle({
   value,
   onChange,
@@ -47,7 +89,6 @@ function Toggle({
   tokens: ExtendedThemeTokens;
 }) {
   const position = useRef(new Animated.Value(value ? 1 : 0)).current;
-
   useEffect(() => {
     const animation = Animated.timing(position, {
       toValue: value ? 1 : 0,
@@ -61,107 +102,56 @@ function Toggle({
   return (
     <Pressable
       accessibilityRole="switch"
-      // React Native Web does not map `accessibilityState.checked` onto a
-      // Pressable, so the ARIA attribute is set directly as well.
+      // React Native Web needs the ARIA attribute as well as accessibilityState.
       aria-checked={value}
       accessibilityState={{ checked: value }}
       accessibilityLabel={label}
       onPress={() => onChange(!value)}
-      style={[
-        styles.track,
-        {
-          backgroundColor: value ? tokens.accent : tokens.surface2,
-          borderColor: value ? tokens.accent : tokens.border,
-        },
-      ]}
+      style={styles.toggleTarget}
     >
-      <Animated.View
+      <View
         style={[
-          styles.knob,
+          styles.track,
           {
-            backgroundColor: value ? tokens.accentForeground : tokens.foregroundMuted,
-            transform: [
-              {
-                translateX: position.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, TRACK_WIDTH - KNOB - 6],
-                }),
-              },
-            ],
+            backgroundColor: value ? tokens.accent : tokens.surface2,
+            borderColor: value ? tokens.accent : tokens.border,
           },
         ]}
-      />
+      >
+        <Animated.View
+          style={[
+            styles.knob,
+            {
+              backgroundColor: value ? tokens.accentForeground : tokens.foregroundMuted,
+              transform: [{ translateX: position.interpolate({ inputRange: [0, 1], outputRange: [0, TRACK_WIDTH - KNOB - 8] }) }],
+            },
+          ]}
+        />
+      </View>
     </Pressable>
   );
 }
 
-/** A row whose control is a toggle: text on the left, switch on the right. */
 function ToggleRow({
   title,
   description,
+  chip,
   value,
   onChange,
   tokens,
 }: {
   title: string;
   description: string;
+  chip?: string;
   value: boolean;
   onChange(next: boolean): void;
   tokens: ExtendedThemeTokens;
 }) {
   return (
     <View style={[styles.row, styles.toggleRow, { borderTopColor: tokens.borderSubtle }]}>
-      <View style={styles.toggleText}>
-        <Text style={[styles.rowTitle, { color: tokens.foreground, fontFamily: tokens.fontUi }]}>
-          {title}
-        </Text>
-        <Text
-          style={[
-            styles.rowDescription,
-            { color: tokens.foregroundMuted, fontFamily: tokens.fontUi },
-          ]}
-        >
-          {description}
-        </Text>
-      </View>
+      <SettingText title={title} description={description} chip={chip} tokens={tokens} />
       <Toggle value={value} onChange={onChange} label={title} tokens={tokens} />
     </View>
-  );
-}
-
-function OptionButton({
-  label,
-  selected,
-  onPress,
-  tokens,
-}: {
-  label: string;
-  selected: boolean;
-  onPress(): void;
-  tokens: ExtendedThemeTokens;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={[
-        styles.option,
-        {
-          backgroundColor: selected ? tokens.accentBg : tokens.surface2,
-          borderColor: selected ? tokens.accent : tokens.borderSubtle,
-        },
-      ]}
-    >
-      <Text
-        style={[
-          styles.optionLabel,
-          { color: selected ? tokens.accent : tokens.foregroundMuted, fontFamily: tokens.fontUi },
-        ]}
-      >
-        {label}
-      </Text>
-    </Pressable>
   );
 }
 
@@ -171,6 +161,9 @@ function ChoiceRow<T extends string>({
   value,
   options,
   onChange,
+  renderPreview,
+  disabled = false,
+  hint,
   tokens,
 }: {
   title: string;
@@ -178,295 +171,317 @@ function ChoiceRow<T extends string>({
   value: T;
   options: ReadonlyArray<{ value: T; label: string }>;
   onChange(value: T): void;
+  renderPreview(value: T): React.ReactNode;
+  disabled?: boolean;
+  hint?: string;
   tokens: ExtendedThemeTokens;
 }) {
   return (
-    <View style={[styles.row, { borderTopColor: tokens.borderSubtle }]}>
-      <Text style={[styles.rowTitle, { color: tokens.foreground, fontFamily: tokens.fontUi }]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.rowDescription,
-          { color: tokens.foregroundMuted, fontFamily: tokens.fontUi },
-        ]}
-      >
-        {description}
-      </Text>
+    <View style={[styles.row, { borderTopColor: tokens.borderSubtle }, disabled && styles.disabled]}>
+      <SettingText title={title} description={description} chip={disabled ? "Disabled" : undefined} tokens={tokens} />
       <View style={styles.options}>
-        {options.map((option) => (
-          <OptionButton
-            key={option.value}
-            label={option.label}
-            selected={value === option.value}
-            onPress={() => onChange(option.value)}
-            tokens={tokens}
-          />
-        ))}
+        {options.map((option) => {
+          const selected = value === option.value;
+          return (
+            <Pressable
+              key={option.value}
+              accessibilityRole="button"
+              accessibilityLabel={`${title}: ${option.label}`}
+              accessibilityState={{ selected, disabled }}
+              aria-pressed={selected}
+              disabled={disabled}
+              onPress={() => onChange(option.value)}
+              style={({ pressed }) => [
+                styles.option,
+                {
+                  backgroundColor: selected ? tokens.accentBg : pressed ? tokens.surface2 : tokens.surface1,
+                  borderColor: selected ? tokens.accent : tokens.border,
+                },
+              ]}
+            >
+              <View pointerEvents="none" aria-hidden style={styles.optionPreview}>
+                {renderPreview(option.value)}
+              </View>
+              <Text style={[styles.optionLabel, { color: selected ? tokens.accent : tokens.foreground, fontFamily: tokens.fontUi }]}>
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
+      {hint ? (
+        <Text style={[styles.hint, { color: tokens.foregroundMuted, fontFamily: tokens.fontUi }]}>{hint}</Text>
+      ) : null}
     </View>
   );
 }
 
-/** Settings content mounted by Paseo under the selected host's Plugin settings. */
+function Section({ title, tokens, children }: { title: string; tokens: ExtendedThemeTokens; children: React.ReactNode }) {
+  return (
+    <View style={[styles.card, { borderColor: tokens.borderSubtle, backgroundColor: tokens.surface0 }]}>
+      <View style={[styles.sectionHeader, { backgroundColor: tokens.surface1 }]}>
+        <Text accessibilityRole="header" style={[styles.sectionTitle, { color: tokens.foreground, fontFamily: tokens.fontUi }]}>
+          {title}
+        </Text>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+/** Paseo mounts this page under the host's Plugin settings. */
 export function BeautifulChatSettingsPage({ theme }: PluginSurfaceProps) {
   const preferences = useEnhancerPreferences();
-  const tokens = useMemo(
-    () => buildThemeTokens(theme.colors, preferences),
-    [preferences, theme.colors],
+  const tokens = useMemo(() => buildThemeTokens(theme.colors, preferences), [preferences, theme.colors]);
+  const [wide, setWide] = useState(false);
+  const summaryMode = hostToolOverview();
+  const preview = (
+    <View style={wide ? styles.previewColumn : styles.stackedPreview}>
+      <SettingsPreview preferences={preferences} tokens={tokens} summaryMode={summaryMode} />
+    </View>
   );
 
   return (
-    <View {...hostFontEscape} style={[styles.container, { backgroundColor: tokens.surface0 }]}>
-      <View
-        style={[
-          styles.intro,
-          { borderColor: tokens.borderSubtle, backgroundColor: tokens.surface1 },
-        ]}
-      >
-        <Text style={[styles.title, { color: tokens.foreground, fontFamily: tokens.fontUi }]}>
-          Chat presentation
+    <View
+      {...hostFontEscape}
+      onLayout={(event) => setWide(event.nativeEvent.layout.width >= TWO_COLUMN_WIDTH)}
+      style={[styles.container, { backgroundColor: tokens.surface0 }]}
+    >
+      <View style={styles.intro}>
+        <Text accessibilityRole="header" style={[styles.title, { color: tokens.foreground, fontFamily: tokens.fontUi }]}>
+          Beautiful Chat
         </Text>
-        <Text
-          style={[styles.description, { color: tokens.foregroundMuted, fontFamily: tokens.fontUi }]}
-        >
-          Changes apply to every enhanced tool call, reasoning trace, checklist, and prompt in this
-          client.
+        <Text style={[styles.description, { color: tokens.foregroundMuted, fontFamily: tokens.fontUi }]}>
+          Changes save automatically. Reload the chat to update items already on screen.
         </Text>
       </View>
+      <View style={[styles.columns, wide && styles.wideColumns]}>
+        {!wide ? preview : null}
+        <View style={[styles.settingsColumn, wide && styles.flexColumn]}>
+          <Section title="Appearance" tokens={tokens}>
+            <View style={[styles.row, { borderTopColor: tokens.borderSubtle }]}>
+              <SettingText title="Accent colour" description="Follow the Paseo theme, or choose a colour." tokens={tokens} />
+              <View style={styles.swatches}>
+                {ACCENT_OPTIONS.map((option) => {
+                  const selected = preferences.accent === option.id;
+                  return (
+                    <Pressable
+                      key={option.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Accent colour: ${option.label}`}
+                      accessibilityState={{ selected }}
+                      aria-pressed={selected}
+                      onPress={() => updateEnhancerPreferences({ accent: option.id })}
+                      style={({ pressed }) => [styles.accentOption, {
+                        borderColor: selected ? tokens.accent : tokens.border,
+                        backgroundColor: selected ? tokens.accentBg : pressed ? tokens.surface2 : tokens.surface1,
+                      }]}
+                    >
+                      <View style={[styles.swatch, { backgroundColor: ACCENT_PRESETS[option.id] ?? theme.colors.accent }]} />
+                      <Text style={[styles.optionLabel, { color: selected ? tokens.accent : tokens.foreground, fontFamily: tokens.fontUi }]}>
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+            <ToggleRow
+              title="Use Paseo fonts"
+              description="Use fonts from Paseo's Appearance settings. Empty font settings keep your choices below."
+              chip="Desktop & web"
+              value={preferences.hostFonts}
+              onChange={(hostFonts) => updateEnhancerPreferences({ hostFonts })}
+              tokens={tokens}
+            />
+            <ChoiceRow<UiFontPreference>
+              title="Interface font"
+              description="Choose the font for prompts and card text."
+              value={preferences.uiFont}
+              options={[{ value: "inter", label: "Inter" }, { value: "system", label: "System" }]}
+              renderPreview={(value) => <Text style={[styles.fontSample, { color: tokens.foreground, fontFamily: value === "inter" ? fontUi : "System" }]}>Aa</Text>}
+              hint={preferences.hostFonts ? "Paseo's interface font takes priority when it is set." : undefined}
+              onChange={(uiFont) => updateEnhancerPreferences({ uiFont })}
+              tokens={tokens}
+            />
+            <ChoiceRow<CodeFontPreference>
+              title="Code glyphs"
+              description="Join code symbols with ligatures, or show each symbol separately."
+              value={preferences.codeFont}
+              options={[{ value: "code", label: "Ligatures" }, { value: "plain", label: "Literal" }]}
+              renderPreview={(value) => <Text style={[styles.codeSample, { color: tokens.foreground, fontFamily: value === "code" ? fontCode : fontMono }]}>{"=> !== <="}</Text>}
+              onChange={(codeFont) => updateEnhancerPreferences({ codeFont })}
+              tokens={tokens}
+            />
+            <ChoiceRow<LineSpacingPreference>
+              title="Line spacing"
+              description="Compact keeps the original spacing. Balanced adds 15% and Spacious adds 30%."
+              value={preferences.lineSpacing}
+              options={[{ value: "compact", label: "Compact" }, { value: "balanced", label: "Balanced" }, { value: "spacious", label: "Spacious" }]}
+              renderPreview={(value) => (
+                <View style={styles.spacingSample}>
+                  {[0, 1, 2].map((line) => (
+                    <View
+                      key={line}
+                      style={[
+                        styles.sampleLine,
+                        {
+                          backgroundColor: tokens.foregroundMuted,
+                          marginVertical: (18 * LINE_SPACING[value] - 4) / 2,
+                        },
+                        line === 2 && styles.shortLine,
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
+              onChange={(lineSpacing) => updateEnhancerPreferences({ lineSpacing })}
+              tokens={tokens}
+            />
+            <ToggleRow
+              title="Frosted glass"
+              description="Blur card backgrounds where supported. Disable this setting for solid surfaces."
+              value={preferences.frostedGlass}
+              onChange={(frostedGlass) => updateEnhancerPreferences({ frostedGlass })}
+              tokens={tokens}
+            />
+            <ToggleRow
+              title="Pointer glow"
+              description="Show a soft light under the pointer on cards. Reduced motion disables this effect."
+              chip="Desktop & web"
+              value={preferences.pointerGlow}
+              onChange={(pointerGlow) => updateEnhancerPreferences({ pointerGlow })}
+              tokens={tokens}
+            />
+          </Section>
 
-      <View
-        style={[
-          styles.card,
-          { borderColor: tokens.borderSubtle, backgroundColor: tokens.surfaceGlass },
-        ]}
-      >
-        <View style={styles.row}>
-          <Text style={[styles.rowTitle, { color: tokens.foreground, fontFamily: tokens.fontUi }]}>
-            Accent colour
-          </Text>
-          <Text
-            style={[
-              styles.rowDescription,
-              { color: tokens.foregroundMuted, fontFamily: tokens.fontUi },
-            ]}
-          >
-            Use the current Paseo theme, or choose a presentation accent.
-          </Text>
-          <View style={styles.accentOptions}>
-            {ACCENT_OPTIONS.map((option) => {
-              const selected = preferences.accent === option.id;
-              const swatch = option.color ?? theme.colors.accent;
-              return (
-                <Pressable
-                  key={option.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Accent: ${option.label}`}
-                  accessibilityState={{ selected }}
-                  onPress={() => updateEnhancerPreferences({ accent: option.id })}
-                  style={[
-                    styles.accentOption,
-                    {
-                      borderColor: selected ? tokens.accent : tokens.borderSubtle,
-                      backgroundColor: selected ? tokens.accentBg : tokens.surface2,
-                    },
-                  ]}
-                >
-                  <View style={[styles.swatch, { backgroundColor: swatch }]} />
-                  <Text
-                    style={[
-                      styles.accentLabel,
-                      {
-                        color: selected ? tokens.accent : tokens.foregroundMuted,
-                        fontFamily: tokens.fontUi,
-                      },
-                    ]}
-                  >
-                    {option.label}
+          <Section title="Replies" tokens={tokens}>
+            <ToggleRow
+              title="Assistant markdown"
+              description="Style headings, lists, code, and stand-alone images. Disable this setting for Mermaid diagrams and Paseo's file-path links."
+              value={preferences.assistantMarkdown}
+              onChange={(assistantMarkdown) => updateEnhancerPreferences({ assistantMarkdown })}
+              tokens={tokens}
+            />
+            <ChoiceRow<MarkdownVariantPreference>
+              title="Markdown style"
+              description="Choose more space, less space, or a code font."
+              value={preferences.markdownVariant}
+              disabled={!preferences.assistantMarkdown}
+              hint={!preferences.assistantMarkdown ? "Enable Assistant markdown to change the style." : undefined}
+              options={[{ value: "document", label: "Document" }, { value: "compact", label: "Compact" }, { value: "terminal", label: "Terminal" }]}
+              renderPreview={(value) => (
+                <View style={[styles.markdownSample, { gap: value === "document" ? 8 : 4 }]}>
+                  <Text style={[styles.sampleHeading, { color: tokens.foreground, fontFamily: value === "terminal" ? tokens.fontMono : tokens.fontUi, fontSize: value === "document" ? 16 : 12 }]}>
+                    {value === "terminal" ? "# Title" : "Title"}
                   </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+                  <Text style={[styles.sampleBody, { color: tokens.foregroundMuted, fontFamily: value === "terminal" ? tokens.fontMono : tokens.fontUi, lineHeight: value === "document" ? 20 : 16 }]}>{"First line\nNext line"}</Text>
+                </View>
+              )}
+              onChange={(markdownVariant) => updateEnhancerPreferences({ markdownVariant })}
+              tokens={tokens}
+            />
+          </Section>
+
+          <Section title="Prompts" tokens={tokens}>
+            <ToggleRow
+              title="Enhanced prompt bubble"
+              description="Paseo removes pasted images before the plugin receives a prompt. Disable this setting for Paseo's bubble with images."
+              value={preferences.enhancedUserBubble}
+              onChange={(enhancedUserBubble) => updateEnhancerPreferences({ enhancedUserBubble })}
+              tokens={tokens}
+            />
+          </Section>
+
+          <Section title="Timeline" tokens={tokens}>
+            <ToggleRow
+              title="Expand running cards"
+              description="Open tool and reasoning cards while they run, stream, or fail. Disable this setting to keep them collapsed until you open them."
+              value={preferences.expandRunningCards}
+              onChange={(expandRunningCards) => updateEnhancerPreferences({ expandRunningCards })}
+              tokens={tokens}
+            />
+            <ToggleRow
+              title="Live checklist"
+              description="Show one checklist below the newest item and update it live. Disable this setting to show each update where it arrived."
+              value={preferences.liveChecklist}
+              onChange={(liveChecklist) => updateEnhancerPreferences({ liveChecklist })}
+              tokens={tokens}
+            />
+            <ToggleRow
+              title="Show reasoning in Summary mode"
+              description="This setting only acts when Paseo's Tool call display is Summary. Visible reasoning splits the tool summary at each thought."
+              chip={summaryMode ? "Paseo: Summary" : "Paseo: Detailed"}
+              value={preferences.overviewReasoning}
+              onChange={(overviewReasoning) => updateEnhancerPreferences({ overviewReasoning })}
+              tokens={tokens}
+            />
+          </Section>
+
+          <Section title="Interaction" tokens={tokens}>
+            <ToggleRow
+              title="Selection actions"
+              description="Select text to show Copy and Add to chat. Add to chat inserts the selection as a quote or code block."
+              chip="Desktop & web"
+              value={preferences.selectionActions}
+              onChange={(selectionActions) => updateEnhancerPreferences({ selectionActions })}
+              tokens={tokens}
+            />
+          </Section>
+          <Pressable
+            accessibilityRole="button"
+            onPress={resetEnhancerPreferences}
+            style={({ pressed }) => [styles.reset, { borderColor: tokens.border, backgroundColor: pressed ? tokens.surface2 : tokens.surface1 }]}
+          >
+            <Text style={[styles.optionLabel, { color: tokens.foreground, fontFamily: tokens.fontUi }]}>Reset defaults</Text>
+          </Pressable>
         </View>
-
-        <ToggleRow
-          title="Use Paseo fonts"
-          description="Use the interface and code fonts from Paseo's appearance settings in place of Inter and Iosevka. An empty Paseo font keeps the embedded face. Desktop and web only. New cards follow the change."
-          value={preferences.hostFonts}
-          onChange={(hostFonts) => updateEnhancerPreferences({ hostFonts })}
-          tokens={tokens}
-        />
-
-        <ChoiceRow<UiFontPreference>
-          title="Interface font"
-          description="Choose the embedded Inter face or the system interface face."
-          value={preferences.uiFont}
-          options={[
-            { value: "inter", label: "Inter" },
-            { value: "system", label: "System" },
-          ]}
-          onChange={(uiFont) => updateEnhancerPreferences({ uiFont })}
-          tokens={tokens}
-        />
-
-        <ChoiceRow<CodeFontPreference>
-          title="Code glyphs"
-          description="Use programming ligatures inside syntax blocks, or keep every code glyph literal."
-          value={preferences.codeFont}
-          options={[
-            { value: "code", label: "Ligatures" },
-            { value: "plain", label: "Literal" },
-          ]}
-          onChange={(codeFont) => updateEnhancerPreferences({ codeFont })}
-          tokens={tokens}
-        />
-
-        <ChoiceRow<LineSpacingPreference>
-          title="Line spacing"
-          description="Sets the space between lines in replies, prompts, and cards. Compact is the original spacing. Balanced adds 15% and Spacious adds 30%. New cards follow the change."
-          value={preferences.lineSpacing}
-          options={[
-            { value: "compact", label: "Compact" },
-            { value: "balanced", label: "Balanced" },
-            { value: "spacious", label: "Spacious" },
-          ]}
-          onChange={(lineSpacing) => updateEnhancerPreferences({ lineSpacing })}
-          tokens={tokens}
-        />
-
-        <ToggleRow
-          title="Frosted glass"
-          description="Blur surfaces where the host supports it, or use solid surfaces instead."
-          value={preferences.frostedGlass}
-          onChange={(frostedGlass) => updateEnhancerPreferences({ frostedGlass })}
-          tokens={tokens}
-        />
-
-        <ToggleRow
-          title="Pointer glow"
-          description="A soft light follows the pointer across each card. Desktop and web only: touch platforms have no hover, and the light is skipped when the system asks for reduced motion."
-          value={preferences.pointerGlow}
-          onChange={(pointerGlow) => updateEnhancerPreferences({ pointerGlow })}
-          tokens={tokens}
-        />
-
-        <ToggleRow
-          title="Enhanced prompt bubble"
-          description="Paseo removes pasted images before a plugin sees the message, so the enhanced bubble cannot show them. Turn this off for Paseo's own bubble with image previews. New prompts follow the change."
-          value={preferences.enhancedUserBubble}
-          onChange={(enhancedUserBubble) => updateEnhancerPreferences({ enhancedUserBubble })}
-          tokens={tokens}
-        />
-
-        <ToggleRow
-          title="Selection actions"
-          description="Highlighting text in a callout raises a small bar with Copy and Add to chat. Add to chat drops the highlight into the composer as a quote, or a fenced block when it came from code. Desktop and web only: iOS and Android use the platform's own selection menu."
-          value={preferences.selectionActions}
-          onChange={(selectionActions) => updateEnhancerPreferences({ selectionActions })}
-          tokens={tokens}
-        />
-
-        <ToggleRow
-          title="Assistant markdown"
-          description="Draws the reply with the plugin's own headings, lists and syntax-highlighted code blocks. The plugin cannot reach Paseo's markdown pipeline, so its version is a subset: turn this off for mermaid diagrams, images, and the host's file-path links."
-          value={preferences.assistantMarkdown}
-          onChange={(assistantMarkdown) => updateEnhancerPreferences({ assistantMarkdown })}
-          tokens={tokens}
-        />
-
-        <ToggleRow
-          title="Expand running cards"
-          description="Opens tool and reasoning cards while they run, stream, or fail. A card opened this way stays open after it finishes. Turn this off to keep every card collapsed until you open it. New cards follow the change."
-          value={preferences.expandRunningCards}
-          onChange={(expandRunningCards) => updateEnhancerPreferences({ expandRunningCards })}
-          tokens={tokens}
-        />
-
-        <ToggleRow
-          title="Show reasoning in Summary mode"
-          description="When Paseo's Tool call display is Summary, the plugin hands tool calls back to Paseo, which folds each run of calls into one summary row. Paseo folds only calls that touch, so this setting hides reasoning between them by default. Turn this on to keep reasoning: the summary then splits at each thought. New items follow the change."
-          value={preferences.overviewReasoning}
-          onChange={(overviewReasoning) => updateEnhancerPreferences({ overviewReasoning })}
-          tokens={tokens}
-        />
-
-        <ChoiceRow
-          title="Markdown style"
-          description="Document is airy and built for long answers. Compact tightens the spacing for short replies. Terminal sets the body in the code face."
-          value={preferences.markdownVariant}
-          options={[
-            { value: "document", label: "Document" },
-            { value: "compact", label: "Compact" },
-            { value: "terminal", label: "Terminal" },
-          ]}
-          onChange={(markdownVariant) => updateEnhancerPreferences({ markdownVariant })}
-          tokens={tokens}
-        />
+        {wide ? preview : null}
       </View>
-
-      <Pressable
-        accessibilityRole="button"
-        onPress={resetEnhancerPreferences}
-        style={[styles.reset, { borderColor: tokens.borderSubtle }]}
-      >
-        <Text
-          style={[styles.resetText, { color: tokens.foregroundMuted, fontFamily: tokens.fontUi }]}
-        >
-          Reset defaults
-        </Text>
-      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // No `flex: 1` here. The host mounts a settings screen inside a plain
-  // column `View` (app `plugins/settings/index.tsx:107`), and React Native Web
-  // compiles `flex: 1` to `flex: 1 1 0%` — a zero basis in a container that
-  // sizes to its content, so the whole page collapses to nothing.
-  container: { alignSelf: "stretch", padding: 16, gap: 12 },
-  toggleRow: { flexDirection: "row", alignItems: "center", gap: 16 },
-  // The text column takes the slack so a long description wraps instead of
-  // pushing the switch off the card.
-  toggleText: { flex: 1, minWidth: 0, gap: 8 },
-  track: {
-    width: TRACK_WIDTH,
-    height: TRACK_HEIGHT,
-    borderRadius: TRACK_HEIGHT / 2,
-    borderWidth: 1,
-    padding: 2,
-    justifyContent: "center",
-  },
-  knob: { width: KNOB, height: KNOB, borderRadius: KNOB / 2 },
-  intro: { padding: 14, borderWidth: 1, borderRadius: radius.card, gap: 4 },
-  title: { fontSize: 16, fontWeight: "700" },
-  description: { fontSize: 13, lineHeight: 18 },
+  // The host uses a content-sized column. A zero flex basis collapses this page.
+  container: { alignSelf: "stretch", padding: 16, gap: 24 },
+  intro: { gap: 8 },
+  title: { fontSize: 20, lineHeight: 28, fontWeight: "700" },
+  description: { fontSize: 12, lineHeight: 20 },
+  columns: { gap: 24, alignItems: "stretch" },
+  wideColumns: { flexDirection: "row", alignItems: "flex-start" },
+  settingsColumn: { minWidth: 0, gap: 16 },
+  flexColumn: { flex: 1 },
+  previewColumn: { width: PREVIEW_WIDTH, flexShrink: 0 },
+  stackedPreview: { alignSelf: "stretch", minWidth: 0 },
   card: { borderWidth: 1, borderRadius: radius.card, overflow: "hidden" },
-  row: { padding: 14, gap: 8, borderTopWidth: 1 },
-  rowTitle: { fontSize: 14, fontWeight: "600" },
-  rowDescription: { fontSize: 12, lineHeight: 17 },
+  sectionHeader: { padding: 16 },
+  sectionTitle: { fontSize: 16, lineHeight: 24, fontWeight: "700" },
+  row: { padding: 16, gap: 12, borderTopWidth: 1 },
+  toggleRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+  settingText: { flex: 1, minWidth: 0, gap: 4 },
+  titleRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 },
+  rowTitle: { fontSize: 14, lineHeight: 20, fontWeight: "600" },
+  chip: { fontSize: 10, lineHeight: 16, paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.chip },
+  toggleTarget: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  track: { width: TRACK_WIDTH, height: TRACK_HEIGHT, borderRadius: TRACK_HEIGHT / 2, borderWidth: 1, padding: 3, justifyContent: "center" },
+  knob: { width: KNOB, height: KNOB, borderRadius: KNOB / 2 },
   options: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  option: { borderWidth: 1, borderRadius: radius.block, paddingHorizontal: 10, paddingVertical: 7 },
-  optionLabel: { fontSize: 12, fontWeight: "600" },
-  accentOptions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  accentOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    borderRadius: radius.block,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
-  },
-  swatch: { width: 12, height: 12, borderRadius: radius.chip },
-  accentLabel: { fontSize: 12, fontWeight: "600" },
-  reset: {
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderRadius: radius.block,
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-  },
-  resetText: { fontSize: 12, fontWeight: "600" },
+  option: { flex: 1, minWidth: 88, borderWidth: 1, borderRadius: radius.block, padding: 12, gap: 8 },
+  optionPreview: { height: 72, justifyContent: "center" },
+  optionLabel: { fontSize: 12, lineHeight: 16, fontWeight: "600" },
+  fontSample: { fontSize: 28, lineHeight: 36 },
+  codeSample: { fontSize: 16, lineHeight: 24 },
+  spacingSample: { width: "100%", maxWidth: 72 },
+  sampleLine: { width: "100%", height: 4, borderRadius: radius.chip },
+  shortLine: { width: "64%" },
+  markdownSample: { alignSelf: "stretch" },
+  sampleHeading: { fontWeight: "700" },
+  sampleBody: { fontSize: 10 },
+  hint: { fontSize: 12, lineHeight: 20 },
+  disabled: { opacity: 0.5 },
+  swatches: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  accentOption: { flexDirection: "row", alignItems: "center", minHeight: 44, gap: 8, borderWidth: 1, borderRadius: radius.block, paddingHorizontal: 12, paddingVertical: 8 },
+  swatch: { width: 16, height: 16, borderRadius: radius.chip },
+  reset: { alignSelf: "flex-start", minHeight: 44, justifyContent: "center", borderWidth: 1, borderRadius: radius.block, paddingHorizontal: 16, paddingVertical: 12 },
 });

@@ -6,6 +6,7 @@ import { TaskList } from "./task-list";
 import type { ExtendedThemeTokens } from "./theme-tokens";
 import { noteTimelineItem, useIsTimelineTail } from "../timeline-tail";
 import type { TaskItemData, TaskListData } from "../../shared/contracts";
+import { useEnhancerPreferences } from "../preferences";
 
 /**
  * The newest checklist per agent, drawn as one card under the newest plugin
@@ -36,7 +37,7 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
-function toTaskListData(items: unknown): TaskListData {
+export function toTaskListData(items: unknown): TaskListData {
   const tasks: TaskItemData[] = (Array.isArray(items) ? items : []).map((raw, idx) => {
     const task = (raw ?? {}) as Record<string, unknown>;
     return {
@@ -151,9 +152,14 @@ interface TimelineTailChecklistProps {
 /**
  * The live checklist under the newest plugin item of its agent. A list with
  * open tasks always follows the tail. A finished list stays until the next
- * prompt, so it is not repeated under later turns.
+ * prompt, so it is not repeated under later turns. With `liveChecklist` off
+ * the todo items draw in place instead, and no feed is opened.
  */
-export function TimelineTailChecklist({ agentId, tokens, itemKey, at }: TimelineTailChecklistProps) {
+export function TimelineTailChecklist(props: TimelineTailChecklistProps) {
+  return useEnhancerPreferences().liveChecklist ? <TailChecklist {...props} /> : null;
+}
+
+function TailChecklist({ agentId, tokens, itemKey, at }: TimelineTailChecklistProps) {
   useEffect(() => {
     noteTimelineItem(agentId, itemKey, at);
   }, [agentId, itemKey, at]);

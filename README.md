@@ -150,18 +150,25 @@ Devicon brand marks, and the file-manager link.
 
 ![Settings screen](docs/images/settings.png)
 
-| Setting                | Effect                                                             |
-| ---------------------- | ------------------------------------------------------------------ |
-| Accent colour          | Follow the Paseo theme, or pick Jade, Violet, Amber, or Rose.      |
-| Interface font         | Embedded Inter, or the system interface face.                      |
-| Code glyphs            | Iosevka with ligatures, or literal glyphs.                         |
-| Frosted glass          | Blur card surfaces, or paint them solid.                           |
-| Enhanced prompt bubble | Off hands prompts back to Paseo, whose bubble shows pasted images. |
-| Assistant markdown     | Off hands replies back to Paseo's own markdown renderer.           |
-| Expand running cards   | Off keeps tool and reasoning cards collapsed until you open them.  |
-| Use Paseo fonts        | Uses Paseo's interface and code fonts in place of Inter and Iosevka. |
-| Line spacing           | Compact (original), Balanced (+15%), or Spacious (+30%) line height. |
-| Show reasoning in Summary mode | Off hides reasoning when Paseo's Tool call display is Summary, so each run of tool calls folds into one Paseo summary row. |
+| Group | Setting | Effect |
+| --- | --- | --- |
+| Appearance | Accent colour | Follow the Paseo theme, or choose Jade, Violet, Amber, or Rose. |
+| Appearance | Use Paseo fonts | Use Paseo's interface and code fonts on desktop and web. Empty font settings keep your plugin font choices. |
+| Appearance | Interface font | Choose Inter or the system font. A font set in Paseo takes priority when Use Paseo fonts is on. |
+| Appearance | Code glyphs | Use Iosevka with ligatures, or show each symbol separately. |
+| Appearance | Line spacing | Keep the original spacing with Compact. Balanced adds 15% and Spacious adds 30%. |
+| Appearance | Frosted glass | Blur card backgrounds where supported, or use solid surfaces. |
+| Appearance | Pointer glow | Show a light under the pointer on cards on desktop and web. Reduced motion disables this effect. |
+| Replies | Assistant markdown | Style headings, lists, code, and stand-alone images, including local files through the daemon. Disable this setting for Mermaid diagrams and Paseo's file-path links. |
+| Replies | Markdown style | Choose Document, Compact, or Terminal. This choice is disabled when Assistant markdown is off. |
+| Prompts | Enhanced prompt bubble | Show the plugin's prompt bubble without pasted images. Disable this setting for Paseo's bubble with images. |
+| Timeline | Expand running cards | Open tool and reasoning cards while they run, stream, or fail. Disable this setting to keep them collapsed until you open them. |
+| Timeline | Live checklist | Show one checklist below the newest item and update it live. Disable this setting to show each update where it arrived. |
+| Timeline | Show reasoning in Summary mode | Keep reasoning visible when Paseo's Tool call display is Summary. Each thought splits the summary row. |
+| Interaction | Selection actions | Select text to show Copy and Add to chat on desktop and web. Add to chat inserts a quote or code block. |
+
+The live preview uses sample prompts, reasoning, tool calls, replies, and checklists.
+Paseo's Tool call display setting controls Summary mode automatically.
 
 ---
 
@@ -298,9 +305,10 @@ paseo plugin reload beautiful-chat
 Rebuild the screenshots after a visual change:
 
 ```bash
-esbuild .showcase/showcase.tsx --bundle --outfile=.showcase/showcase.js --jsx=automatic \
+esbuild .showcase/showcase.tsx --bundle --outfile=.showcase/showcase.js --jsx=automatic --define:global=globalThis \
   --alias:react-native=react-native-web \
-  --alias:@getpaseo/plugin/client/react-native=./.showcase/shims/plugin-react-native.tsx
+  --alias:@getpaseo/plugin/client/react-native=./.showcase/shims/plugin-react-native.tsx \
+  --alias:@getpaseo/plugin/client=./.showcase/shims/plugin-client.ts
 ```
 
 Then serve `.showcase/` and capture each `#shot-*` element.
